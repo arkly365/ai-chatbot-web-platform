@@ -1,0 +1,28 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  application:
+    name: ai-chatbot-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/ai_chatbot?useUnicode=true&characterEncoding=utf8mb4&connectionCollation=utf8mb4_unicode_ci&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Taipei}
+    username: ${SPRING_DATASOURCE_USERNAME:chatbot}
+    password: ${SPRING_DATASOURCE_PASSWORD:chatbot123}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQLDialect
+
+openai:
+  base-url: https://api.openai.com/v1/responses
+  model: gpt-4.1-mini
+  api-key: ${OPENAI_API_KEY:}
