@@ -45,11 +45,27 @@
 
 👉 Floating Chat Widget（右下角 AI 客服）
 
+![](C:\Users\arkly365\AppData\Roaming\msbmarkdown\images\2026-04-29-22-33-09-image.png)
+
 👉 Quick Reply 按鈕操作
+
+![](C:\Users\arkly365\AppData\Roaming\msbmarkdown\images\2026-04-29-22-34-35-image.png)
 
 👉 多輪對話 + AI 回應
 
-（此區後續 Phase 9.2 補圖片）
+![](C:\Users\arkly365\AppData\Roaming\msbmarkdown\images\2026-04-29-22-35-16-image.png)
+
+![](C:\Users\arkly365\AppData\Roaming\msbmarkdown\images\2026-04-29-22-36-06-image.png)
+
+
+
+![](C:\Users\arkly365\AppData\Roaming\msbmarkdown\images\2026-04-29-22-36-46-image.png)
+
+
+
+![](C:\Users\arkly365\AppData\Roaming\msbmarkdown\images\2026-04-29-22-37-19-image.png)
+
+
 
 ---
 
@@ -63,8 +79,6 @@ $env:OPENAI_API_KEY="your_api_key"
 
 docker compose down
 docker compose up -d --build
-
-
 
 ---
 
@@ -87,8 +101,6 @@ Invoke-RestMethod `
   -ContentType "application/json; charset=utf-8" `  
   -Body $body
 
-
-
 ---
 
 ## 🧪 資料庫查看
@@ -96,8 +108,6 @@ Invoke-RestMethod `
 docker exec -it chatbot-mysql mysql --default-character-set=utf8mb4 -uappuser -papppass chatbot  
 
 SELECT * FROM chat_logs ORDER BY id DESC LIMIT 3\G
-
-
 
 ---
 
