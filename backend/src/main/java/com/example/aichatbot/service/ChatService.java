@@ -5,8 +5,11 @@ import com.example.aichatbot.dto.ChatRequest;
 import com.example.aichatbot.dto.ChatResponse;
 import com.example.aichatbot.dto.OpenAiResponse;
 import com.example.aichatbot.entity.ChatLog;
+import com.example.aichatbot.faq.FaqItem;
+import com.example.aichatbot.faq.FaqService;
 import com.example.aichatbot.repository.ChatLogRepository;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -22,19 +25,49 @@ public class ChatService {
     private final RestClient restClient;
     private final OpenAiProperties openAiProperties;
     private final ChatLogRepository chatLogRepository;
+    private final FaqService faqService;
     
     
     public ChatService(
             RestClient restClient,
             OpenAiProperties openAiProperties,
-            ChatLogRepository chatLogRepository
+            ChatLogRepository chatLogRepository,
+            FaqService faqService
     ) {
         this.restClient = restClient;
         this.openAiProperties = openAiProperties;
         this.chatLogRepository = chatLogRepository;
+        this.faqService = faqService;
     }
 
     public ChatResponse chat(ChatRequest request) {
+    	 FaqItem faqItem = faqService.findRelevantFaq(request.getMessage());
+
+    	 if (faqItem != null) {
+
+    		    String userMessage = request.getMessage();
+
+    		    chatLogRepository.save(new ChatLog(
+    		            "user",
+    		            userMessage,
+    		            LocalDateTime.now()
+    		    ));
+
+    		    String ragReply = callOpenAiWithRagContext(request, faqItem);
+
+    		    chatLogRepository.save(new ChatLog(
+    		            "assistant",
+    		            ragReply,
+    		            LocalDateTime.now()
+    		    ));
+
+    		    return new ChatResponse(
+    		            ragReply,
+    		            "assistant",
+    		            Arrays.asList("醫院", "圖書館", "加油站", "百貨公司"),
+    		            LocalDateTime.now()
+    		    );
+    		}
     	
     	 String userMessage = request.getMessage();
 
@@ -62,6 +95,48 @@ public class ChatService {
         );
     }
 
+    private String callOpenAiWithRagContext(ChatRequest request, FaqItem faqItem) {
+        if (openAiProperties.getApiKey() == null || openAiProperties.getApiKey().isBlank()) {
+            return "尚未設定 OPENAI_API_KEY，請先設定環境變數。";
+        }
+
+        List<Map<String, String>> input = new ArrayList<>();
+
+        input.add(Map.of(
+                "role", "system",
+                "content",
+                buildSystemPrompt(request.getAiRole())
+                        + "\n\n你現在會收到一段 FAQ 知識庫資料。"
+                        + "\n請優先根據 FAQ 內容回答使用者問題。"
+                        + "\n如果 FAQ 已經足夠回答，請不要自行編造資訊。"
+                        + "\n回答請自然、親切、簡潔。"
+        ));
+
+        input.add(Map.of(
+                "role", "user",
+                "content",
+                "FAQ 知識庫：\n"
+                        + "問題：" + faqItem.getQuestion() + "\n"
+                        + "答案：" + faqItem.getAnswer() + "\n\n"
+                        + "使用者問題：" + request.getMessage()
+        ));
+
+        Map<String, Object> openAiRequest = Map.of(
+                "model", openAiProperties.getModel(),
+                "input", input
+        );
+
+        OpenAiResponse response = restClient.post()
+                .uri(openAiProperties.getBaseUrl())
+                .header("Authorization", "Bearer " + openAiProperties.getApiKey())
+                .header("Content-Type", "application/json")
+                .body(openAiRequest)
+                .retrieve()
+                .body(OpenAiResponse.class);
+
+        return extractText(response);
+    }
+    
     private String callOpenAi(ChatRequest request) {
         if (openAiProperties.getApiKey() == null || openAiProperties.getApiKey().isBlank()) {
             return "尚未設定 OPENAI_API_KEY，請先設定環境變數。";

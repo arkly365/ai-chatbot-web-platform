@@ -70,8 +70,6 @@ SELECT * FROM chat_logs ORDER BY id DESC LIMIT 3\G
 
 可以看到每一次對話都有被保存。
 
-
-
 ## 🧠 3. 設計重點
 
 這個專案我特別關注三個設計：
