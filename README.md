@@ -140,7 +140,7 @@ Micrometer Timer → Prometheus → Grafana
 
 👉 AI Latency（自訂指標）
 
-![](C:\Users\arkly365\AppData\Roaming\msbmarkdown\images\2026-04-30-16-13-21-image.png)
+![](images/2026-04-30-16-13-21-image.png)
 
 ---
 
