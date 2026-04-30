@@ -29,16 +29,13 @@ const messages = ref([
 
 async function openChat() {
   isOpen.value = true
-
   await nextTick()
-
   inputRef.value?.focus()
   scrollToBottom()
 }
 
 async function scrollToBottom() {
   await nextTick()
-
   if (chatBoxRef.value) {
     chatBoxRef.value.scrollTop = chatBoxRef.value.scrollHeight
   }
@@ -65,7 +62,7 @@ async function sendMessage(customText) {
     quickReplies: []
   })
 
-  scrollToBottom()
+  await scrollToBottom()
 
   inputMessage.value = ''
 
@@ -75,6 +72,7 @@ async function sendMessage(customText) {
       text: '請選擇你想查詢的類型：',
       quickReplies: quickReplyOptions
     })
+    await scrollToBottom()
     return
   }
 
@@ -84,8 +82,18 @@ async function sendMessage(customText) {
 async function callChatApi(text) {
   loading.value = true
 
+  const assistantIndex = messages.value.length
+
+  messages.value.push({
+    role: 'assistant',
+    text: '',
+    quickReplies: []
+  })
+
+  await scrollToBottom()
+
   try {
-    const response = await fetch(`${API_BASE_URL}/api/chat`, {
+    const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -101,28 +109,69 @@ async function callChatApi(text) {
       throw new Error(`HTTP Error: ${response.status}`)
     }
 
-    const data = await response.json()
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
 
-    messages.value.push({
-      role: 'assistant',
-      text: data.message || data.reply || data.content || 'AI 沒有回傳內容',
-      quickReplies: []
-    })
-    
-    scrollToBottom()
+    let buffer = ''
 
+    while (true) {
+      const { done, value } = await reader.read()
+
+      if (done) {
+        break
+      }
+
+      const chunk = decoder.decode(value, { stream: true })
+
+      console.log('stream chunk:', chunk)
+
+      buffer += chunk
+
+      const events = buffer.split(/\r?\n\r?\n/)
+      buffer = events.pop() || ''
+
+      for (const eventText of events) {
+        const lines = eventText.split(/\r?\n/)
+
+        let eventName = ''
+        let eventData = ''
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            eventName = line.replace('event:', '').trim()
+          }
+
+          if (line.startsWith('data:')) {
+            eventData += line.replace('data:', '')
+          }
+        }
+
+        if (eventName === 'message') {
+          messages.value[assistantIndex].text += eventData
+          await nextTick()
+          await scrollToBottom()
+        }
+
+        if (eventName === 'done') {
+          loading.value = false
+          await scrollToBottom()
+          return
+        }
+
+        if (eventName === 'error') {
+          messages.value[assistantIndex].text += '\n[Streaming 發生錯誤]'
+          loading.value = false
+          await scrollToBottom()
+          return
+        }
+      }
+    }
   } catch (error) {
-    messages.value.push({
-      role: 'assistant',
-      text: '呼叫後端失敗，請確認 Spring Boot 是否已啟動。',
-      quickReplies: []
-    })
-
-    scrollToBottom()
-
+    messages.value[assistantIndex].text = '呼叫後端失敗，請確認 Spring Boot 是否已啟動。'
     console.error(error)
   } finally {
     loading.value = false
+    await scrollToBottom()
   }
 }
 
@@ -146,9 +195,9 @@ async function clickQuickReply(reply) {
     quickReplies: []
   })
 
+  await scrollToBottom()
   await callChatApi(text)
 }
-
 
 const widgetPosition = ref({
   right: 24,
@@ -191,16 +240,22 @@ function stopDrag() {
   window.removeEventListener('mousemove', onDrag)
   window.removeEventListener('mouseup', stopDrag)
 }
-
-
 </script>
 
 <template>
-  <div class="chat-widget"  :style="{
-    right: widgetPosition.right + 'px',
-    bottom: widgetPosition.bottom + 'px'
-  }">
-    <button v-if="!isOpen" class="chat-toggle-button" @click="openChat" @mousedown="startDrag">
+  <div
+    class="chat-widget"
+    :style="{
+      right: widgetPosition.right + 'px',
+      bottom: widgetPosition.bottom + 'px'
+    }"
+  >
+    <button
+      v-if="!isOpen"
+      class="chat-toggle-button"
+      @click="openChat"
+      @mousedown="startDrag"
+    >
       💬
     </button>
 
@@ -224,7 +279,7 @@ function stopDrag() {
         </select>
       </div>
 
-      <div class="chat-box"  ref="chatBoxRef">
+      <div class="chat-box" ref="chatBoxRef">
         <div
           v-for="(msg, index) in messages"
           :key="index"
@@ -254,17 +309,17 @@ function stopDrag() {
 
         <div v-if="loading" class="message assistant">
           <div class="message-content">
-            <div class="bubble">AI 回覆中...</div>
+            <div class="bubble cursor">▋</div>
           </div>
         </div>
       </div>
 
       <div class="input-area">
         <input
-        ref="inputRef"
-        v-model="inputMessage"
-        placeholder="請輸入訊息..."
-        @keyup.enter="sendMessage()"
+          ref="inputRef"
+          v-model="inputMessage"
+          placeholder="請輸入訊息..."
+          @keyup.enter="sendMessage()"
         />
 
         <button class="send-button" @click="sendMessage()" :disabled="loading">
@@ -386,6 +441,20 @@ select {
 .assistant .bubble {
   background: #e5e7eb;
   color: #111827;
+}
+
+.cursor {
+  width: fit-content;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0.2;
+  }
 }
 
 .inline-quick-replies {
