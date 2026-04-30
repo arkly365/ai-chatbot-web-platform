@@ -5,6 +5,7 @@ import com.example.aichatbot.dto.ChatResponse;
 import com.example.aichatbot.service.ChatService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -20,6 +21,12 @@ public class ChatController {
     @PostMapping
     public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
         return chatService.chat(request);
+    }
+
+    // Phase 11.1：Streaming API
+    @PostMapping("/stream")
+    public SseEmitter stream(@Valid @RequestBody ChatRequest request) {
+        return chatService.streamChat(request);
     }
 
     @GetMapping("/health")

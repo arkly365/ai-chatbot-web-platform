@@ -8,8 +8,8 @@ import com.example.aichatbot.entity.ChatLog;
 import com.example.aichatbot.faq.FaqItem;
 import com.example.aichatbot.faq.FaqService;
 import com.example.aichatbot.repository.ChatLogRepository;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -93,6 +93,53 @@ public class ChatService {
                 Arrays.asList("醫院", "圖書館", "加油站", "百貨公司"),
                 LocalDateTime.now()
         );
+    }
+    
+    public SseEmitter streamChat(ChatRequest request) {
+        SseEmitter emitter = new SseEmitter(60_000L);
+
+        new Thread(() -> {
+            try {
+                ChatResponse response = chat(request);
+                String reply = response.getReply();
+
+                if (reply == null || reply.isBlank()) {
+                    emitter.send(SseEmitter.event()
+                            .name("message")
+                            .data("AI 沒有回傳內容。"));
+                    emitter.complete();
+                    return;
+                }
+
+                // 模擬逐字 streaming
+                for (int i = 0; i < reply.length(); i++) {
+                    String chunk = String.valueOf(reply.charAt(i));
+
+                    emitter.send(SseEmitter.event()
+                            .name("message")
+                            .data(chunk));
+
+                    Thread.sleep(30);
+                }
+
+                emitter.send(SseEmitter.event()
+                        .name("done")
+                        .data("[DONE]"));
+
+                emitter.complete();
+
+            } catch (Exception e) {
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("error")
+                            .data("Streaming failed: " + e.getMessage()));
+                } catch (Exception ignored) {
+                }
+                emitter.completeWithError(e);
+            }
+        }).start();
+
+        return emitter;
     }
 
     private String callOpenAiWithRagContext(ChatRequest request, FaqItem faqItem) {
