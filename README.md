@@ -2,7 +2,6 @@
 
 一個可嵌入網站的 AI 客服聊天機器人系統，支援多輪對話、RAG（知識庫問答）、Streaming 回應，以及完整 Observability（Prometheus + Grafana 監控）。
 
-
 ---
 
 ## 🎯 專案定位
@@ -21,26 +20,31 @@
 ## 🧩 系統特色
 
 ### 💬 AI 對話能力
+
 - OpenAI API 整合
 - 多輪對話（Conversation History）
 - System Prompt（aiRole）角色切換
 
 ### 🧠 RAG（Retrieval-Augmented Generation）
+
 - Keyword-based FAQ 匹配
 - Embedding-based 語意搜尋（Cosine Similarity）
 - FAQ Context 注入 Prompt
 - AI 自然回應（非死回）
 
 ### ⚡ 使用者體驗
+
 - Quick Reply / Inline Quick Reply
 - Streaming 回應（逐字輸出）
 - Vue Floating Chat Widget（可拖曳 / 收合）
 
 ### 🗂 資料管理
+
 - MySQL 對話紀錄（chat_logs）
 - user / assistant 分角色存儲
 
 ### 📊 Observability（監控🔥）
+
 - Spring Boot Actuator + Micrometer
 - Prometheus metrics 收集
 - Grafana Dashboard 可視化
@@ -50,19 +54,19 @@
 
 ## 🏗 技術架構
 
-
-| 層級           | 技術                          |
-|----------------|-------------------------------|
-| Frontend       | Vue 3                         |
-| Backend        | Spring Boot                   |
-| Database       | MySQL                         |
-| AI             | OpenAI API                    |
-| RAG            | Embedding + Cosine Similarity |
-| Streaming      | SSE (SseEmitter)              |
-| Observability  | Prometheus + Grafana          |
-| DevOps         | Docker / Docker Compose       |
+| 層級            | 技術                            |
+| ------------- | ----------------------------- |
+| Frontend      | Vue 3                         |
+| Backend       | Spring Boot                   |
+| Database      | MySQL                         |
+| AI            | OpenAI API                    |
+| RAG           | Embedding + Cosine Similarity |
+| Streaming     | SSE (SseEmitter)              |
+| Observability | Prometheus + Grafana          |
+| DevOps        | Docker / Docker Compose       |
 
 ---
+
 ## 🧠 系統架構
 
 ```
@@ -84,6 +88,7 @@ Prometheus（metrics）
  ↓
 Grafana（Dashboard）
 ```
+
 ---
 
 ## 📊 監控（Observability）
@@ -128,11 +133,14 @@ Micrometer Timer → Prometheus → Grafana
 ![](images/2026-04-29-22-37-19-image.png)
 
 ---
+
 ## 📈 Grafana Dashboard（監控畫面🔥）
 
 👉 API QPS / Error Rate / Status 分佈
 
 👉 AI Latency（自訂指標）
+
+![](C:\Users\arkly365\AppData\Roaming\msbmarkdown\images\2026-04-30-16-13-21-image.png)
 
 ---
 
