@@ -26,3 +26,15 @@ openai:
   base-url: https://api.openai.com/v1/responses
   model: gpt-4.1-mini
   api-key: ${OPENAI_API_KEY:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ai-chatbot-web

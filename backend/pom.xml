@@ -67,6 +67,18 @@
 		    <scope>runtime</scope>
 		</dependency>
         
+        <!-- Spring Boot Actuator：提供 /actuator/health、/actuator/prometheus -->
+		<dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		
+		<!-- Micrometer Prometheus：讓 Spring Boot 輸出 Prometheus 格式 metrics -->
+		<dependency>
+		    <groupId>io.micrometer</groupId>
+		    <artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+        
     </dependencies>
 
     

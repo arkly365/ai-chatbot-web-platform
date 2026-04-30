@@ -8,11 +8,16 @@ import com.example.aichatbot.entity.ChatLog;
 import com.example.aichatbot.faq.FaqItem;
 import com.example.aichatbot.faq.FaqService;
 import com.example.aichatbot.repository.ChatLogRepository;
+
+import io.micrometer.core.instrument.MeterRegistry;
+
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import io.micrometer.core.instrument.Timer;
 
+import java.util.concurrent.TimeUnit;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,18 +31,21 @@ public class ChatService {
     private final OpenAiProperties openAiProperties;
     private final ChatLogRepository chatLogRepository;
     private final FaqService faqService;
+    private final MeterRegistry meterRegistry;
     
     
     public ChatService(
             RestClient restClient,
             OpenAiProperties openAiProperties,
             ChatLogRepository chatLogRepository,
-            FaqService faqService
+            FaqService faqService,
+            MeterRegistry meterRegistry
     ) {
         this.restClient = restClient;
         this.openAiProperties = openAiProperties;
         this.chatLogRepository = chatLogRepository;
         this.faqService = faqService;
+        this.meterRegistry = meterRegistry;
     }
 
     public ChatResponse chat(ChatRequest request) {
@@ -53,7 +61,7 @@ public class ChatService {
     		            LocalDateTime.now()
     		    ));
 
-    		    String ragReply = callOpenAiWithRagContext(request, faqItem);
+    		    String ragReply = recordAiLatency("rag", () -> callOpenAiWithRagContext(request, faqItem));
 
     		    chatLogRepository.save(new ChatLog(
     		            "assistant",
@@ -79,7 +87,7 @@ public class ChatService {
     	        ));
     	    }
     	    
-        String aiReply = callOpenAi(request);
+        String aiReply = recordAiLatency("normal", () -> callOpenAi(request));
         
         chatLogRepository.save(new ChatLog(
                 "assistant",
@@ -182,6 +190,22 @@ public class ChatService {
                 .body(OpenAiResponse.class);
 
         return extractText(response);
+    }
+    
+    private String recordAiLatency(String type, java.util.function.Supplier<String> supplier) {
+        long start = System.nanoTime();
+
+        try {
+            return supplier.get();
+        } finally {
+            long duration = System.nanoTime() - start;
+
+            Timer.builder("ai.chat.latency")
+                    .description("AI chat response latency")
+                    .tag("type", type)
+                    .register(meterRegistry)
+                    .record(duration, TimeUnit.NANOSECONDS);
+        }
     }
     
     private String callOpenAi(ChatRequest request) {

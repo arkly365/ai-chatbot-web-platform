@@ -50,3 +50,8 @@ mysql-data/
 ##################################
 *.tmp
 *.swp
+
+##################################
+backend/.classpath
+backend/.project
+backend/.settings/
